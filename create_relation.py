@@ -1,25 +1,16 @@
-import psycopg2
+from dbconnect import connect_db
 
-try:
-    conn = psycopg2.connect(
-        database="passwords",
-        user="user",
-        password="pword",
-        host="127.0.0.1",
-        port="5432"
+conn = connect_db()
+cur = conn.cursor()
+
+cur.execute('''
+    CREATE TABLE user_password_data (
+        ID          INT         PRIMARY KEY     NOT NULL,
+        ACCOUNT     CHAR(20)    NOT NULL,
+        PASSWORD    CHAR(100)   NOT NULL
     )
-    cur = conn.cursor()
+''')
 
-    cur.execute('''
-        CREATE TABLE user_password_data (
-            ID          INT         PRIMARY KEY     NOT NULL,
-            ACCOUNT     CHAR(20)    NOT NULL,
-            PASSWORD    CHAR(100)   NOT NULL
-        )
-    ''')
+print("Table created successfully")
 
-    print("Table created successfully")
-
-    conn.commit()
-except ConnectionError:
-    print("A connection error occurred")
+conn.commit()
