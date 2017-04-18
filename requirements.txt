@@ -11,7 +11,6 @@ mock==2.0.0
 packaging==16.8
 pbr==2.1.0
 pep8==1.7.0
-pkg-resources
 py==1.4.33
 pyflakes==1.5.0
 pyparsing==2.2.0
