@@ -1,7 +1,9 @@
 #! python3
 
 
-import sys, pyperclip, ps_data
+import sys
+import pyperclip
+import ps_data
 
 if len(sys.argv) < 2:
     print("Please provide an account name...")
