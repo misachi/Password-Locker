@@ -70,6 +70,7 @@ docs/_build/
 media/
 
 .env
+ps.txt
 
 virtualenv_Trial_project/
 >>>>>>> models

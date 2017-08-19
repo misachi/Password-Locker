@@ -1,16 +1,21 @@
 from dbconnect import connect_db
 
-conn = connect_db()
-cur = conn.cursor()
 
-cur.execute('''
-    CREATE TABLE user_password_data (
-        ID          INT         PRIMARY KEY     NOT NULL,
-        ACCOUNT     CHAR(20)    NOT NULL,
-        PASSWORD    CHAR(100)   NOT NULL
-    )
-''')
+def create_table():
+    conn = connect_db()
+    cur = conn.cursor()
 
-print("Table created successfully")
+    cur.execute('''
+        CREATE TABLE vault(
+            id          SERIAL      PRIMARY KEY,
+            account     CHAR(20)    NOT NULL,
+            password    TEXT        NOT NULL,
+            key         TEXT        NOT NULL
+        )
+    ''')
 
-conn.commit()
+    print("Table created successfully")
+
+    conn.commit()
+
+create_table()
