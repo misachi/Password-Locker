@@ -9,8 +9,7 @@ def create_table():
         CREATE TABLE vault(
             id          SERIAL      PRIMARY KEY,
             account     CHAR(20)    NOT NULL,
-            password    TEXT        NOT NULL,
-            key         TEXT        NOT NULL
+            password    BYTEA       NOT NULL
         )
     ''')
 
