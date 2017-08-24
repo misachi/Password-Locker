@@ -1,17 +1,27 @@
+#!/usr/bin/python3.5
+
 import psycopg2
 import bcrypt
 import base64
-from base64 import b32encode, b32decode
 import os
 import sys
-from psycopg2.extras import execute_values
 from getpass import getpass
 from cryptography.fernet import Fernet, MultiFernet
-
-# for separating setting parameters from source code
 from decouple import config
+from psycopg2.extras import execute_values
 
-PARENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# PARENT_DIR = os.path.dirname(
+#     os.path.dirname(os.path.abspath(__file__)))
+
+MAIN_PASS_DIR = config('MAIN_PASS_DIR')
+KEY_STORE_DIR = config('KEY_STORE_DIR')
+
+if not os.path.exists(MAIN_PASS_DIR):
+    os.makedirs(MAIN_PASS_DIR)
+
+if not os.path.exists(KEY_STORE_DIR):
+    os.makedirs(KEY_STORE_DIR)
+
 
 #  I noticed that config from decouple module was misbehaving so I included this
 #  workaround just in case. In the 'else' part replace 'passwords' with your database name or a
@@ -40,14 +50,14 @@ def save_master_password():
     if len(password) < 8:
         raise AssertionError('Too short(password should be at least 8 characters long)')
     hashed_pass = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    with open(os.path.join(PARENT_DIR, 'master.txt'), 'wb') as pass_file:
+    with open(os.path.join(MAIN_PASS_DIR, 'master.txt'), 'wb') as pass_file:
         pass_file.write(hashed_pass)
 
 
 def login():
     password = getpass('Input password: ')
     # try:
-    with open(os.path.join(PARENT_DIR, 'master.txt'), 'rb') as pass_file:
+    with open(os.path.join(MAIN_PASS_DIR, 'master.txt'), 'rb') as pass_file:
         hashed = pass_file.read()
         if bcrypt.checkpw(password.encode('utf-8'), hashed):
             print('Password confirmed')
@@ -65,7 +75,7 @@ def save_account_passwords():
 
     result = []
 
-    with open(os.path.join(PARENT_DIR, 'secrets.txt'), 'ab') as secret:
+    with open(os.path.join(KEY_STORE_DIR, 'secrets.txt'), 'ab') as secret:
         while choice:
             account_name = input('Account name: ')
             password = getpass('Account"s password: ')
@@ -86,11 +96,13 @@ def save_account_passwords():
             secret.write(key)
             quiz = input('Still more? ("Yes" to add more or "No" to quit): ').lower()
 
-            if quiz in ['yes', 'no']:
-                if quiz == 'no':
+            if quiz in ['yes', 'y', 'no', 'n']:
+                if quiz == 'no' or quiz == 'n':
                     choice = False
             else:
-                raise KeyError('Choices are "Yes" and "No"!')
+                print('Choices are "Yes" and "No"!')
+                break
+                # raise KeyError('Choices are "Yes" and "No"!')
     query = '''INSERT INTO vault (account, password) VALUES %s'''
     execute_values(cur, query, result)
     conn.commit()
@@ -110,14 +122,17 @@ def retrieve_password():
         query = cur.mogrify('''SELECT * FROM vault WHERE account = %s''', (account_name, ))
         cur.execute(query, account_name)
         return_row = cur.fetchone()
-        with open(os.path.join(PARENT_DIR, 'secrets.txt'), 'rb') as secrets:
+        with open(os.path.join(KEY_STORE_DIR, 'secrets.txt'), 'rb') as secrets:
             lines = secrets.read()
             all_secrets = [Fernet(b''.join([secret, b'=='])) for secret in lines.split(b'=') if secret != b'']
 
             #  An attempt to get a key match from list of keys provided
             data = MultiFernet(all_secrets)
-
-            password = data.decrypt(base64.urlsafe_b64decode(return_row[2]))
+            try:
+                password = data.decrypt(base64.urlsafe_b64decode(return_row[2]))
+            except:
+                print('Token is invalid or does not exist')
+                sys.exit()
             raw_passwd = base64.urlsafe_b64decode(password)
             return raw_passwd
     except LookupError:
@@ -128,6 +143,7 @@ def retrieve_password():
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         raise Exception('Please provide at least 2 values')
+    print(sys.argv[1])
 
     if sys.argv[1] == 'master':
         save_master_password()
