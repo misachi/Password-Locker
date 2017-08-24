@@ -38,7 +38,7 @@ def connect_db():
 def save_master_password():
     password = getpass('Input the mighty password of all(should be > 8 characters long)...: ')
     if len(password) < 8:
-        raise AssertionError('Too short')
+        raise AssertionError('Too short(password should be at least 8 characters long)')
     hashed_pass = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
     with open(os.path.join(PARENT_DIR, 'master.txt'), 'wb') as pass_file:
         pass_file.write(hashed_pass)
@@ -46,83 +46,94 @@ def save_master_password():
 
 def login():
     password = getpass('Input password: ')
-    try:
-        with open(os.path.join(PARENT_DIR, 'master.txt'), 'rb') as pass_file:
-            hashed = pass_file.read()
-            if bcrypt.checkpw(password.encode('utf-8'), hashed):
-                print('Password confirmed')
-                return True
-    except (IOError, EOFError):
-        print('Wrong password')
+    # try:
+    with open(os.path.join(PARENT_DIR, 'master.txt'), 'rb') as pass_file:
+        hashed = pass_file.read()
+        if bcrypt.checkpw(password.encode('utf-8'), hashed):
+            print('Password confirmed')
+            return True
+    # except (IOError, EOFError):
+    #     return False
 
 
 def save_account_passwords():
     choice = True
     conn = connect_db()
     cur = conn.cursor()
-    if login() is True:
-        result = []
-
-        with open(os.path.join(PARENT_DIR, 'secrets.txt'), 'ab') as secret:
-            while choice:
-                account_name = input('Account name: ')
-                password = getpass('Account"s password: ')
-                key = Fernet.generate_key()
-                fernet = Fernet(key)
-
-                data = MultiFernet([fernet])
-                token = data.encrypt(base64.urlsafe_b64encode(password.encode('utf-8')))
-
-                # data = MultiFernet([fernet])
-                # password = data.decrypt(token)
-                # print(token)
-                # print(base64.urlsafe_b64decode(password))
-
-                #  Here the password is decoded once again to ensure it is not
-                #  wrongfully encoded by the database encoder (I learnt this the painful way)
-                result.append((account_name, base64.urlsafe_b64encode(token)))
-                # secret.write('{0} {1}'.format(account_name, key).strip(' '))
-                secret.write(key)
-                quiz = input('Still more? ("Yes" to add more or "No" to quit): ').lower()
-
-                if quiz in ['yes', 'no']:
-                    if quiz == 'no':
-                        choice = False
-                else:
-                    raise KeyError('Choices are "Yes" and "No"!')
-        query = '''INSERT INTO vault (account, password) VALUES %s'''
-        execute_values(cur, query, result)
-        conn.commit()
-        conn.close()
-    else:
-        conn.close()
+    if not login():
         raise PermissionError('Unauthorized user')
+
+    result = []
+
+    with open(os.path.join(PARENT_DIR, 'secrets.txt'), 'ab') as secret:
+        while choice:
+            account_name = input('Account name: ')
+            password = getpass('Account"s password: ')
+            key = Fernet.generate_key()
+            fernet = Fernet(key)
+
+            data = MultiFernet([fernet])
+            token = data.encrypt(base64.urlsafe_b64encode(password.encode('utf-8')))
+
+            # data = MultiFernet([fernet])
+            # password = data.decrypt(token)
+            # print(token)
+            # print(base64.urlsafe_b64decode(password))
+
+            #  Here the password is decoded once again to ensure it is not
+            #  wrongfully encoded by the database encoder (I learnt this the painful way)
+            result.append((account_name, base64.urlsafe_b64encode(token)))
+            secret.write(key)
+            quiz = input('Still more? ("Yes" to add more or "No" to quit): ').lower()
+
+            if quiz in ['yes', 'no']:
+                if quiz == 'no':
+                    choice = False
+            else:
+                raise KeyError('Choices are "Yes" and "No"!')
+    query = '''INSERT INTO vault (account, password) VALUES %s'''
+    execute_values(cur, query, result)
+    conn.commit()
+    conn.close()
 
 
 def retrieve_password():
     conn = connect_db()
     cur = conn.cursor()
-    if login() is True:
-        account_name = input('Please enter account to retrieve password...: ')
-        try:
-            query = cur.mogrify('''SELECT * FROM vault WHERE account = %s''', (account_name, ))
-            cur.execute(query, account_name)
-            return_row = cur.fetchone()
-            with open(os.path.join(PARENT_DIR, 'secrets.txt'), 'rb') as secrets:
-                lines = secrets.read()
-                all_secrets = [Fernet(b''.join([secret, b'=='])) for secret in lines.split(b'=') if secret != b'']
 
-                #  An attempt to get a key match from list of keys provided
-                data = MultiFernet(all_secrets)
-
-                password = data.decrypt(base64.urlsafe_b64decode(return_row[2]))
-                raw_passwd = base64.urlsafe_b64decode(password)
-                return raw_passwd
-        except LookupError:
-            print('account matching query does not exist')
-    else:
+    if not login():
         raise PermissionError('Unauthorized user')
 
-# save_master_password()
-# save_account_passwords()
-retrieve_password()
+    account_name = input('Please enter account to retrieve password...: ')
+
+    try:
+        query = cur.mogrify('''SELECT * FROM vault WHERE account = %s''', (account_name, ))
+        cur.execute(query, account_name)
+        return_row = cur.fetchone()
+        with open(os.path.join(PARENT_DIR, 'secrets.txt'), 'rb') as secrets:
+            lines = secrets.read()
+            all_secrets = [Fernet(b''.join([secret, b'=='])) for secret in lines.split(b'=') if secret != b'']
+
+            #  An attempt to get a key match from list of keys provided
+            data = MultiFernet(all_secrets)
+
+            password = data.decrypt(base64.urlsafe_b64decode(return_row[2]))
+            raw_passwd = base64.urlsafe_b64decode(password)
+            return raw_passwd
+    except LookupError:
+        print('account matching query does not exist')
+        return None
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        raise Exception('Please provide at least 2 values')
+
+    if sys.argv[1] == 'master':
+        save_master_password()
+    elif sys.argv[1] == 'save_pass':
+        save_account_passwords()
+    elif sys.argv[1] == 'get_pass':
+        retrieve_password()
+    else:
+        raise Exception('No argument match')
