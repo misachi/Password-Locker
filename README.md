@@ -30,7 +30,7 @@ in the project root dir, with your path
 	#!/bin/bash
 	python /path/to/your/project's/directory/Password-Locker/passwords/"$1" "$2"
 	
-Make your_file_name.sh executable. Run `chown +x your_file_name.sh`. If you get permission denied error, try adding sudo.
+Make your_file_name.sh executable. Run `chown +x /your/path/to/your_file_name.sh`. If you get permission denied error, try adding sudo.
 
 Add the bin directory you created to your path(put at the bottom of your .bashrc file)
 
@@ -45,4 +45,7 @@ Create a master password - At the command line type `your_file_name.sh dbconnect
 |save_pass  |save account passwords|
 |get_pass   |retrieve account password|
 |upass   |update account's password|
+
+
+Rename the .env_example file to .env and replace the config data accordingly. `MAIN_PASS_DIR describes the directory to store your master password(hashed of course).` Ensure you have read/write access to this directory. `KEY_STORE_DIR describes the directory you'd want to store the file containing your encryption keys`. As before, ensure you have read/write access to this directory.
 
