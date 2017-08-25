@@ -70,9 +70,5 @@ docs/_build/
 media/
 
 .env
-ps.txt
 secrets.txt
-
-virtualenv_Trial_project/
->>>>>>> models
-staticfiles
+master.txt

@@ -24,11 +24,13 @@ py==1.4.33
 pycparser==2.18
 pyflakes==1.5.0
 pyparsing==2.2.0
+pyperclip==1.5.27
 pytest==3.0.7
 pytest-cache==1.0
 pytest-cov==2.4.0
 pytest-mock==1.6.0
 pytest-pep8==1.0.6
+python-crontab==2.2.4
 python-dateutil==2.6.0
 pytz==2017.2
 requests==2.13.0
