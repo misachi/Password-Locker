@@ -1,5 +1,3 @@
-#!/usr/bin/python3.5
-
 import psycopg2
 import bcrypt
 import base64
@@ -18,11 +16,14 @@ from pythonScript import copy_password
 MAIN_PASS_DIR = config('MAIN_PASS_DIR')
 KEY_STORE_DIR = config('KEY_STORE_DIR')
 
-if not os.path.exists(MAIN_PASS_DIR):
-    os.makedirs(MAIN_PASS_DIR)
-
-if not os.path.exists(KEY_STORE_DIR):
-    os.makedirs(KEY_STORE_DIR)
+"""
+Am doing this on the bash script due to permission issue when done using python
+"""
+# if not os.path.exists(MAIN_PASS_DIR):
+#     os.makedirs(MAIN_PASS_DIR)
+#
+# if not os.path.exists(KEY_STORE_DIR):
+#     os.makedirs(KEY_STORE_DIR)
 
 
 #  I noticed that config from decouple module was misbehaving so I included this
@@ -50,9 +51,13 @@ def save_master_password():
     path = os.path.join(MAIN_PASS_DIR, 'master.txt')
     if os.path.exists(path):
         quiz = input('Do you want to replace  master password(Yes or No)? ')
-        if quiz in ['yes', 'y', 'no', 'n']:
-            if quiz == 'no' or quiz == 'n':
+        low_er = quiz.lower()
+        if low_er in ['yes', 'y', 'no', 'n']:
+            if low_er == 'no' or low_er == 'n':
                 sys.exit()
+        else:
+            print('Choices can only be Yes, No, Y, N, n, y')
+            sys.exit()
 
     password = getpass('Input the mighty password of all(should be > 8 characters long)...: ')
 
@@ -158,23 +163,25 @@ def update_password(conn):
     cur.close()
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        raise Exception('Please provide at least 2 values')
+    arg_list = ['master', 'save_pass', 'get_pass', 'upass']
+    if len(sys.argv) < 2 or sys.argv[1] is '':
+        raise Exception('Please provide a command')
 
-    if sys.argv[1] == 'master':
+    if sys.argv[1] not in arg_list:
+        raise IndexError('Wrong index value')
+
+    if sys.argv[1] == arg_list[0]:
         save_master_password()
     else:
         if not login():
             raise PermissionError('Unauthorized user')
 
         conn = connect_db()
-        if sys.argv[1] == 'save_pass':
+        if sys.argv[1] == arg_list[1]:
             save_account_passwords(conn)
-        elif sys.argv[1] == 'get_pass':
+        elif sys.argv[1] == arg_list[2]:
             account, passw = retrieve_password(conn)
             copy_password(account, passw)
-        elif sys.argv[1] == 'upass':
+        elif sys.argv[1] == arg_list[3]:
             update_password(conn)
-        else:
-            raise Exception('No argument match')
         conn.close()
