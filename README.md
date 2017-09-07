@@ -72,7 +72,7 @@ Add the bin directory you created to your path(put at the bottom of your .bashrc
 Now open terminal(Assuming you already have a database setup with the correct configurations) anywhere and 
 run `your_file_name.sh table` to create the table
 
-Create a master password - At the command line type `your_file_name.sh dbconnect.py master`. The basic syntax is `<your_file_name.sh>  <command>` where command can be any of the following:
+Create a master password - At the command line type `your_file_name.sh or sym_link master`. The basic syntax is `<your_file_name.sh> <command> or <sym_link> <command>` where command can be any of the following:
 
 |Commannd   |Meaning|
 |-----------|--------------------------------|
