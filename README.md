@@ -25,22 +25,58 @@ To begin `Clone <https://github.com/misachi/Password-Locker.git>`_ to a director
 In the your home directory create a directory, bin, and add it to your path(this applies if you never had the directory before). If you already have the bin directory, just create the file inside it.
 
 Create a bash file e.g your_file_name.sh and copy the code below replacing the path passwords directory, 
-in the project root dir, with your path
+in the project root dir, with your path. Or you could write your own bash script to perform the same.
 
 	#!/bin/bash
-	python /path/to/your/project's/directory/Password-Locker/passwords/"$1" "$2"
+
+	MAIN_PASS_DIR=path/to/store/master_key
+	KEY_STORE_DIR=path/to/store/account_keys
+
+	DIR_NAME=path/to/project  # this should be like path/Password-Locker/password
+
+	if [ ! -d  "$MAIN_PASS_DIR" ]
+	then
+		mkdir $MAIN_PASS_DIR	
+	fi
+	
+	if [ ! -d "$KEY_STORE_DIR" ]; then
+		mkdir $KEY_STORE_DIR
+	fi
+
+	if [[ "$1" == 'table' ]]; then
+		python "${DIR_NAME}create_relation.py"
+	elif [[ "$1" == 'save_pass' ]]; then
+		python "${DIR_NAME}dbconnect.py" "$1"
+	elif [[ "$1" == 'master' ]]; then
+		python "${DIR_NAME}dbconnect.py" "$1"
+	elif [[ "$1" == 'get_pass' ]]; then
+		python "${DIR_NAME}dbconnect.py" "$1"
+	elif [[ "$1" == 'upass' ]]; then
+		python "${DIR_NAME}dbconnect.py" "$1"
+	else
+		python "${DIR_NAME}dbconnect.py" "$1"
+	fi
+
+	exit $?
+	
+You can also create a symlink to your bash script
+
+	ln -s path/to/your_file_name.sh path/to/sym_link
+	
+**NOTE** This is not a requirement
 	
 Make your_file_name.sh executable. Run `chown +x /your/path/to/your_file_name.sh`. If you get permission denied error, try adding sudo.
 
 Add the bin directory you created to your path(put at the bottom of your .bashrc file)
 
-Now open terminal(Assuming you already have a database setup with the correct config) anywhere and 
-run `your_file_name.sh create_relation.py` to create the table
+Now open terminal(Assuming you already have a database setup with the correct configurations) anywhere and 
+run `your_file_name.sh table` to create the table
 
-Create a master password - At the command line type `your_file_name.sh dbconnect.py master`. The basic syntax is `your_file_name.sh <script to run> <command>` where command can be any of the following:
+Create a master password - At the command line type `your_file_name.sh dbconnect.py master`. The basic syntax is `<your_file_name.sh>  <command>` where command can be any of the following:
 
 |Commannd   |Meaning|
 |-----------|--------------------------------|
+|table|create table if its your first time using locker|
 |master    |create or update master password|
 |save_pass  |save account passwords|
 |get_pass   |retrieve account password|
@@ -48,4 +84,6 @@ Create a master password - At the command line type `your_file_name.sh dbconnect
 
 
 Rename the .env_example file to .env and replace the config data accordingly. `MAIN_PASS_DIR describes the directory to store your master password(hashed of course).` Ensure you have read/write access to this directory. `KEY_STORE_DIR describes the directory you'd want to store the file containing your encryption keys`. As before, ensure you have read/write access to this directory.
+
+Enjoy :)
 
