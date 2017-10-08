@@ -18,7 +18,8 @@ def generate_token(password, key):
 def verify_password(token):
     with open(os.path.join(KEY_STORE_DIR, 'secrets.txt'), 'rb') as secrets:
         lines = secrets.read()
-        all_secrets = [Fernet(b''.join([secret, b'=='])) for secret in lines.split(b'=') if secret != b'']
+        all_secrets = [Fernet(b''.join([secret, b'=='])) for secret in
+                       lines.split(b'=') if secret != b'']
 
         #  An attempt to get a key match from list of keys provided
         data = MultiFernet(all_secrets)

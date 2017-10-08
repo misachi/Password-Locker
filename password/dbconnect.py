@@ -26,9 +26,10 @@ Am doing this on the bash script due to permission issue when done using python
 #     os.makedirs(KEY_STORE_DIR)
 
 
-#  I noticed that config from decouple module was misbehaving so I included this
-#  workaround just in case. In the 'else' part replace 'passwords' with your database name or a
-#  better alternative could be to use os.environ to retrieve environment variables
+#  I noticed that config from decouple module was misbehaving so I included
+# this workaround just in case. In the 'else' part replace 'passwords' with
+# your database name or a better alternative could be to use os.environ to
+# retrieve environment variables
 DATABASE = config('DATABASE') if config('DATABASE') != '' else 'passwords'
 
 
@@ -59,10 +60,12 @@ def save_master_password():
             print('Choices can only be Yes, No, Y, N, n, y')
             sys.exit()
 
-    password = getpass('Input the mighty password of all(should be > 8 characters long)...: ')
+    password = getpass(
+        'Input the mighty password of all(should be > 8 characters long)...: ')
 
     if len(password) < 8:
-        raise AssertionError('Too short(password should be at least 8 characters long)')
+        raise AssertionError(
+            'Too short(password should be at least 8 characters long)')
     hashed_pass = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
     with open(path, 'wb') as pass_file:
@@ -91,10 +94,13 @@ def save_account_passwords(conn):
             token = generate_token(password, key)
 
             #  Here the password is decoded once again to ensure it is not
-            #  'wrongfully' encoded by the database encoder (I learnt this the painful way)
+            #  'wrongfully' encoded by the database encoder (I learnt this the
+            #  painful way)
             result.append((account_name, base64.urlsafe_b64encode(token)))
             secret.write(key)
-            quiz = input('Still more? ("Yes" to add more or "No" to quit): ').lower()
+            quiz = input(
+                    'Still more? ("Yes" to add more or "No" to quit): '
+                    ).lower()
 
             if quiz in ['yes', 'y', 'no', 'n']:
                 if quiz == 'no' or quiz == 'n':
@@ -114,7 +120,8 @@ def retrieve_password(conn):
     account_name = input('Please enter account to retrieve password...: ')
 
     try:
-        query = cur.mogrify('''SELECT * FROM vault WHERE account = %s''', (account_name, ))
+        query = cur.mogrify('''SELECT * FROM vault WHERE account = %s''',
+                            (account_name, ))
         cur.execute(query, account_name)
         return_row = cur.fetchone()
         raw_passwd = verify_password(return_row[2])
@@ -130,7 +137,8 @@ def update_password(conn):
 
     account = input('Account name to be changed: ')
     try:
-        query = cur.mogrify('''SELECT * FROM vault WHERE account = %s''', (account, ))
+        query = cur.mogrify('''SELECT * FROM vault WHERE account = %s''',
+                            (account, ))
         cur.execute(query, account)
         return_row = cur.fetchone()
         raw_passwd = verify_password(return_row[2])
@@ -157,10 +165,12 @@ def update_password(conn):
     with open(os.path.join(KEY_STORE_DIR, 'secrets.txt'), 'ab') as secret:
         secret.write(key)
     args = (base64.urlsafe_b64encode(token), account)
-    query = cur.mogrify('''UPDATE vault SET password = %s WHERE account = %s''', args)
+    query = cur.mogrify('''UPDATE vault SET password = %s
+    WHERE account = %s''', args)
     cur.execute(query)
     conn.commit()
     cur.close()
+
 
 if __name__ == '__main__':
     arg_list = ['master', 'save_pass', 'get_pass', 'upass']
