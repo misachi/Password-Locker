@@ -4,12 +4,12 @@ import base64
 import os
 import sys
 from getpass import getpass
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, MultiFernet
 from decouple import config
 from psycopg2.extras import execute_values
+import logging
 
-from utils import verify_password, generate_token
-from pythonScript import copy_password
+from utils import verify_password, generate_token, copy_password
 
 # To do run cronjob to remind user to change master password after 3 days
 
@@ -25,7 +25,16 @@ Am doing this on the bash script due to permission issue when done using python
 # if not os.path.exists(KEY_STORE_DIR):
 #     os.makedirs(KEY_STORE_DIR)
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
+handler = logging.FileHandler('locker.logs')
+handler.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+logger.addHandler(handler)
 #  I noticed that config from decouple module was misbehaving so I included
 # this workaround just in case. In the 'else' part replace 'passwords' with
 # your database name or a better alternative could be to use os.environ to
@@ -42,9 +51,10 @@ def connect_db():
             host=config('HOST'),
             port=config('PORT')
         )
-
+        logger.info('Database connection successful')
         return conn
     except (ConnectionError, ConnectionRefusedError):
+        logger.exception('Connection Error')
         print('Unable to connect')
 
 
@@ -55,8 +65,10 @@ def save_master_password():
         low_er = quiz.lower()
         if low_er in ['yes', 'y', 'no', 'n']:
             if low_er == 'no' or low_er == 'n':
+                logger.info('User chose not to alter master password')
                 sys.exit()
         else:
+            logger.warning('Appropriate answer not provided')
             print('Choices can only be Yes, No, Y, N, n, y')
             sys.exit()
 
@@ -77,6 +89,7 @@ def login():
     with open(os.path.join(MAIN_PASS_DIR, 'master.txt'), 'rb') as pass_file:
         hashed = pass_file.read()
         if bcrypt.checkpw(password.encode('utf-8'), hashed):
+            logger.info('Master Login was successful')
             print('Password confirmed')
             return True
 
@@ -104,9 +117,11 @@ def save_account_passwords(conn):
 
             if quiz in ['yes', 'y', 'no', 'n']:
                 if quiz == 'no' or quiz == 'n':
+                    logger.info('User chose not to add more accounts')
                     choice = False
             else:
                 print('Choices are "Yes" and "No"!')
+                logger.warning('Wrong/Unrecognized choice made by user')
                 break
     query = '''INSERT INTO vault (account, password) VALUES %s'''
     execute_values(cur, query, result)
@@ -125,11 +140,47 @@ def retrieve_password(conn):
         cur.execute(query, account_name)
         return_row = cur.fetchone()
         raw_passwd = verify_password(return_row[2])
+        logger.info('Password decryption successful')
         cur.close()
         return account_name, raw_passwd.decode('utf-8')
     except LookupError:
+        logger.exception('Lookup error on database, account provided by user not in database')
         print('account matching query does not exist')
         sys.exit()
+
+def delete_password(conn):
+    cur = conn.cursor()
+
+    account = input('Please input account to delete: ')
+    # try:
+    query = cur.mogrify('''SELECT * FROM vault WHERE account = %s''',
+                        (account, ))
+    cur.execute(query, account)
+    return_row = cur.fetchone()
+    with open(os.path.join(KEY_STORE_DIR, 'secrets.txt'), 'rb') as secrets:
+        lines = secrets.read()
+        all_secrets = [Fernet(b''.join([secret, b'=='])) for secret in
+                    lines.split(b'=') if secret != b'']
+        # print(all_secrets)
+
+        #  An attempt to get a key match from list of keys provided
+        data = MultiFernet(all_secrets)
+        print(data)
+        # del(data)
+        # print('hooray')
+
+            # try:
+            #     password = data.decrypt(base64.urlsafe_b64decode(token))
+            # except:
+            #     print('Token is invalid or does not exist')
+            #     sys.exit()
+            # raw_passwd = base64.urlsafe_b64decode(password)
+            # return raw_passwd
+
+        # query = cur.mogrify('''DELETE * FROM vault WHERE account = %s''', (account, ))
+        # cur.execute(query)
+    # except:
+    #     pass        
 
 
 def update_password(conn):
@@ -142,15 +193,15 @@ def update_password(conn):
         cur.execute(query, account)
         return_row = cur.fetchone()
         raw_passwd = verify_password(return_row[2])
-        print(raw_passwd)
         chance = 0
         while chance <= 2:
             old_password = getpass('Old password: ')
-            print(old_password)
             if raw_passwd.decode('utf-8') != old_password:
+                logger.warning('Password given by user does not match existing password in database')
                 print('Incorrect password!')
                 if chance == 2:
                     print('You have tried the wrong password 3 times!')
+                    logger.fatal('User entered incorrect password 3 times')
                     sys.exit()
             else:
                 break
@@ -171,27 +222,49 @@ def update_password(conn):
     conn.commit()
     cur.close()
 
+# if __name__ == '__main__':
+#     conn = connect_db()
+#     delete_password(conn)
+
 
 if __name__ == '__main__':
+    commands = '''
+    Here are the command to use with locker:\n
+    1. master - Create or alter master password\n
+    2. save_pass - Add new account to save password\n
+    3. get_pass - Retrieve password for an account\n
+    4. upass - Update/Change password for account\n
+    Example usage: locker upass\n
+    '''
+    logger.info('Successful on start...')
+    print(commands)
     arg_list = ['master', 'save_pass', 'get_pass', 'upass']
     if len(sys.argv) < 2 or sys.argv[1] is '':
+        logger.fatal('No command provided by user')
         raise Exception('Please provide a command')
 
     if sys.argv[1] not in arg_list:
+        logger.fatal('User provided command not in allowed commands(Unrecognized command %s)' % sys.argv[1])
         raise IndexError('Wrong index value')
 
     if sys.argv[1] == arg_list[0]:
+        logger.info('User chose to alter master password')
         save_master_password()
     else:
         if not login():
+            logger.critical('Wrong password submitted by user')
             raise PermissionError('Unauthorized user')
 
         conn = connect_db()
         if sys.argv[1] == arg_list[1]:
+            logger.info('User chose to add a new account')
             save_account_passwords(conn)
         elif sys.argv[1] == arg_list[2]:
+            logger.info('User chose to retrieve their account password')
             account, passw = retrieve_password(conn)
             copy_password(account, passw)
         elif sys.argv[1] == arg_list[3]:
+            logger.info('User chose to update password')
             update_password(conn)
         conn.close()
+    logger.info('Succesful on END...')
