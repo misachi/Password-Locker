@@ -40,6 +40,21 @@ logger.addHandler(handler)
 # your database name or a better alternative could be to use os.environ to
 # retrieve environment variables
 DATABASE = config('DATABASE') if config('DATABASE') != '' else 'passwords'
+if sys.version.split('.')[0] <= 2:
+    """
+    Python 2 has no global names PermissionError, ConnectionError 
+    or ConnectionRefusedError hence this
+    """
+    class PermissionError(Exception):
+        pass
+
+
+    class ConnectionError(Exception):
+        pass
+
+
+    class ConnectionRefusedError(Exception):
+        pass
 
 
 def connect_db():
@@ -86,12 +101,18 @@ def save_master_password():
 
 def login():
     password = getpass('Input password: ')
+    print(login)
+    print(MAIN_PASS_DIR)
     with open(os.path.join(MAIN_PASS_DIR, 'master.txt'), 'rb') as pass_file:
         hashed = pass_file.read()
-        if bcrypt.checkpw(password.encode('utf-8'), hashed):
-            logger.info('Master Login was successful')
-            print('Password confirmed')
-            return True
+        try:
+            if bcrypt.checkpw(password.encode('utf-8'), hashed):
+                logger.info('Master Login was successful')
+                print('Password confirmed')
+                return True
+        except:
+            logger.critical('Master login unsuccessful')
+            return False
 
 
 def save_account_passwords(conn):
@@ -148,39 +169,40 @@ def retrieve_password(conn):
         print('account matching query does not exist')
         sys.exit()
 
-def delete_password(conn):
-    cur = conn.cursor()
+# 
+# def delete_password(conn):
+#     cur = conn.cursor()
 
-    account = input('Please input account to delete: ')
-    # try:
-    query = cur.mogrify('''SELECT * FROM vault WHERE account = %s''',
-                        (account, ))
-    cur.execute(query, account)
-    return_row = cur.fetchone()
-    with open(os.path.join(KEY_STORE_DIR, 'secrets.txt'), 'rb') as secrets:
-        lines = secrets.read()
-        all_secrets = [Fernet(b''.join([secret, b'=='])) for secret in
-                    lines.split(b'=') if secret != b'']
-        # print(all_secrets)
+#     account = input('Please input account to delete: ')
+#     # try:
+#     query = cur.mogrify('''SELECT * FROM vault WHERE account = %s''',
+#                         (account, ))
+#     cur.execute(query, account)
+#     return_row = cur.fetchone()
+#     with open(os.path.join(KEY_STORE_DIR, 'secrets.txt'), 'rb') as secrets:
+#         lines = secrets.read()
+#         all_secrets = [Fernet(b''.join([secret, b'=='])) for secret in
+#                     lines.split(b'=') if secret != b'']
+#         # print(all_secrets)
 
-        #  An attempt to get a key match from list of keys provided
-        data = MultiFernet(all_secrets)
-        print(data)
-        # del(data)
-        # print('hooray')
+#         #  An attempt to get a key match from list of keys provided
+#         data = MultiFernet(all_secrets)
+#         print(data)
+#         # del(data)
+#         # print('hooray')
 
-            # try:
-            #     password = data.decrypt(base64.urlsafe_b64decode(token))
-            # except:
-            #     print('Token is invalid or does not exist')
-            #     sys.exit()
-            # raw_passwd = base64.urlsafe_b64decode(password)
-            # return raw_passwd
+#             # try:
+#             #     password = data.decrypt(base64.urlsafe_b64decode(token))
+#             # except:
+#             #     print('Token is invalid or does not exist')
+#             #     sys.exit()
+#             # raw_passwd = base64.urlsafe_b64decode(password)
+#             # return raw_passwd
 
-        # query = cur.mogrify('''DELETE * FROM vault WHERE account = %s''', (account, ))
-        # cur.execute(query)
-    # except:
-    #     pass        
+#         # query = cur.mogrify('''DELETE * FROM vault WHERE account = %s''', (account, ))
+#         # cur.execute(query)
+#     # except:
+#     #     pass        
 
 
 def update_password(conn):
@@ -221,10 +243,6 @@ def update_password(conn):
     cur.execute(query)
     conn.commit()
     cur.close()
-
-# if __name__ == '__main__':
-#     conn = connect_db()
-#     delete_password(conn)
 
 
 if __name__ == '__main__':
