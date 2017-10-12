@@ -1,7 +1,7 @@
 Description
 ===========================
 
-**Note:** Currently, Locker has been tested and works on linux
+**Note:** Currently, Locker has been tested and works on Ubuntu and Mac
 
 Locker is a commandline utility program that helps users store their passwords.It eliminates the need for crumming or having to remember all of your passwords. It has the ability to persist the desired encrypted secret/password in a database and retrieve it later
 for use.Locker allows storage of multiple account passwords at once
@@ -20,7 +20,7 @@ How it works (install)
 Locker is a python program, that means it can run on most platforms,although, only linux platform has been tested.It uses the cryptography package to encrypt and decrypt the password before and after storage.The generated key is stored in a separate location(pickled file or plain text file) - Your choice.It is up to the user to choose where these files are stored in their system.Just ensure you have the required read & write permissions to the folders/locations you choose.Here is a walk through of how to run it anywhere in your system.
 
 To begin `Clone <https://github.com/misachi/Password-Locker.git>`_ to a directory of choice and run 
-`pip install -r requirements.txt`.
+`pip install -r /path/to/project/requirements.txt`.
 
 In the your home directory create a directory, bin, and add it to your path(this applies if you never had the directory before). If you already have the bin directory, just create the file inside it.
 
@@ -29,32 +29,32 @@ in the project root dir, with your path. Or you could write your own bash script
 
 	#!/bin/bash
 
-	MAIN_PASS_DIR=path/to/store/master_key
-	KEY_STORE_DIR=path/to/store/account_keys
+	MAIN_PASS_DIR=/path/to/your/location(folder)/to/keep/master password
+	KEY_STORE_DIR=/path/to/your/loaction/to/store/account passwords
 
-	DIR_NAME=path/to/project  # this should be like path/Password-Locker/password
+	DIR_NAME=/path/to/location/of cloned/project  # this should be like /path/Password-Locker/password
 
 	if [ ! -d  "$MAIN_PASS_DIR" ]
 	then
-		mkdir $MAIN_PASS_DIR	
+		mkdir $MAIN_PASS_DIR && touch "${MAIN_PASS_DIR}/master.txt"
 	fi
-	
+
 	if [ ! -d "$KEY_STORE_DIR" ]; then
-		mkdir $KEY_STORE_DIR
+		mkdir $KEY_STORE_DIR && touch "${KEY_STORE_DIR}/account_keys.txt"
 	fi
 
 	if [[ "$1" == 'table' ]]; then
-		python "${DIR_NAME}create_relation.py"
+		python "${DIR_NAME}/create_relation.py"
 	elif [[ "$1" == 'save_pass' ]]; then
-		python "${DIR_NAME}dbconnect.py" "$1"
+		python "${DIR_NAME}/dbconnect.py" "$1"
 	elif [[ "$1" == 'master' ]]; then
-		python "${DIR_NAME}dbconnect.py" "$1"
+		python "${DIR_NAME}/dbconnect.py" "$1"
 	elif [[ "$1" == 'get_pass' ]]; then
-		python "${DIR_NAME}dbconnect.py" "$1"
+		python "${DIR_NAME}/dbconnect.py" "$1"
 	elif [[ "$1" == 'upass' ]]; then
-		python "${DIR_NAME}dbconnect.py" "$1"
+		python "${DIR_NAME}/dbconnect.py" "$1"
 	else
-		python "${DIR_NAME}dbconnect.py" "$1"
+		python "${DIR_NAME}/dbconnect.py" "$1"
 	fi
 
 	exit $?
