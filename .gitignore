@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 
+# visual code files
+.vscode/
+
 #pycharm ide files
 .idea/
 
