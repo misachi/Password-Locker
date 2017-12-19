@@ -87,3 +87,6 @@ Rename the .env_example file to .env and replace the config data accordingly. `M
 
 Enjoy :)
 
+Check me out on StackShare
+
+[![StackShare](https://img.shields.io/badge/tech-stack-0690fa.svg?style=flat)](https://stackshare.io/misachi/misachi)
