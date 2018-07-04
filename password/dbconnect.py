@@ -101,8 +101,6 @@ def save_master_password():
 
 def login():
     password = getpass('Input password: ')
-    print(login)
-    print(MAIN_PASS_DIR)
     with open(os.path.join(MAIN_PASS_DIR, 'master.txt'), 'rb') as pass_file:
         hashed = pass_file.read()
         try:
